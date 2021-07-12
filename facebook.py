@@ -1,12 +1,13 @@
 import json
-
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium import webdriver
 import time
 from  bs4 import BeautifulSoup
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-import numpy as np
-from urllib.parse import unquote
-import re
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException
+
+
 caps = DesiredCapabilities.CHROME
 caps['loggingPrefs'] = {'performance': 'ALL' ,
                         'brower':'ALL'}
@@ -17,14 +18,6 @@ caps['perfLoggingPrefs'] = {
     'enableTimeline':False
 }
 option =  webdriver.ChromeOptions()
-# option.add_argument('--no-sandbox')
-# option.add_argument('--headless')
-# option.add_argument("--disable-extensions")
-# option.add_argument("--allow-running-insecure-content")
-# option.add_argument("--ignore-certificate-errors")
-# option.add_argument("--disable-single-click-autofill")
-# option.add_argument("--disable-autofill-keyboard-accessory-view[8]")
-# option.add_argument("--disable-full-form-autofill-ios")
 option.add_experimental_option('w3c', False)
 prefs = {
         'profile.default_content_setting_values': {
@@ -43,128 +36,138 @@ option.add_experimental_option('perfLoggingPrefs', {
 option.add_argument("--disable-notifications")
 driver = webdriver.Chrome(desired_capabilities=caps, options=option)
 driver .get('https://www.facebook.com/?stype=lo&jlou=AffaQOipEw6f7To3BhArLIJBajOrBGoRMAQ7Bhzr4aaYsWjPSY6XSMLdL2Vq-ltT5BPjFtQW2zcm8NMlF0TX29S2u8ftj9ofnleppVZntmuFwA&smuh=15818&lh=Ac8DARqZTrATBAVV17I')
-driver.find_element_by_css_selector("input#email").send_keys("shine655218@gmail.com")
+driver.find_element_by_css_selector("input#email").send_keys("kobe655218@gmail.com")
 driver.find_element_by_css_selector("input#pass").send_keys("kobe910018")
 driver.find_element_by_css_selector("button[name='login']").click()
 time.sleep(3)
-
 driver.get("https://www.facebook.com/craziejulia")  #https://www.facebook.com/friends/suggestions/?profile_id=100000160215580
-# time.sleep(5)
 
-datas = []
 div = 0
 last_p = 0
+height_before = 0
+count = 0
 while True:
+    time.sleep(0.5)
+
+    # 如果高度都沒變及post數為0代表已經滑到底
+    heigh_after = driver.execute_script(f"return document.body.scrollHeight ;")
+    print( "滑動前高度：" , height_before,"滑動後高度：" , heigh_after)
+    if height_before == heigh_after and count == 0:
+        break
+
     count = 0
-    #紀錄滾動前高度
+    # 紀錄滾動前高度
     height_before = driver.execute_script(f"return document.body.scrollHeight ;")
     driver.execute_script(f"window.scrollTo(0, {int(height_before) - div});")
-    time.sleep(1)
     div += 1000
-    # posts_ = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
+
+    # 滾動到底
     driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight);")
+
+    # network log
     logs_raw = driver.get_log("performance")
     logs = [json.loads(lr["message"])["message"] for lr in logs_raw]
     def log_filter(log_):
         return (
-                log_["method"] == "Network.requestWillBeSent" or
-                log_["method"] == "Network.request"
-
+                log_["method"] == "Network.requestWillBeSent"
         )
 
     for log in filter(log_filter, logs):
         resp_url = log["params"]["request"]["url"]
-        if resp_url == "https://www.facebook.com/ajax/bulk-route-definitions/" : #https://www.facebook.com/ajax/bulk-route-definitions/
 
-            post = log["params"]["request"]["postData"]
-            post = np.array(post.split("&"))
-            fetch = [ "route_urls" in i  for  i in  post]
-            post_fetch = post[fetch]
-            data = ["https://www.facebook.com" + unquote(re.match("route_urls\[\d*\]=(.*)",i).groups()[0]) for i in post_fetch]
-            datas  += data
-            print(data)
+        # 如果有post活動 則去等待post後大於post前
+        if resp_url == "https://www.facebook.com/ajax/bulk-route-definitions/" : #https://www.facebook.com/ajax/bulk-route-definitions/
             posts = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
             posts_len = len(posts)
             last_post = posts_len
-            count  += 1
+            count  = 1
             print("network post")
+
+
+            # 等待貼文loading
             while True:
                 posts_now = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
                 posts_len_now = len(posts_now)
-                print("post前po文數：", last_p, "post後po文數：", posts_len_now)
-
-                # 如果post後大於等於post前 代表已經loading完
-                if posts_len_now >= last_p:
+                print("post前po文數：", last_p, "post後po文數：", posts_len_now )
+                # 如果post後大於post前 代表已經loading完
+                if  (posts_len_now -  last_p) >= 1  :
+                    # 紀錄post前貼文數
+                    last_p = posts_len_now
                     break
-
-
-
-    posts_now = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
-    posts_len_now = len(posts_now)
-    # 紀錄post前貼文數
-    last_p = posts_len_now
-
-    time.sleep(1)
-    heigh_after = driver.execute_script(f"return document.body.scrollHeight ;")
-    print("滑動後高度：" , heigh_after,  "滑動前高度：" , height_before)
-
-    # 如果高度都沒變及post數為0代表已經滑到底
-    if height_before == heigh_after and count == 0:
-        break
-
+            break
 
 #%%
 
 
-import requests
-filter_data = ["599383947142230" in i for i in datas]
-datas = np.array(datas)
-filter_data = datas[filter_data]
+driver.execute_script("window.scrollTo(0,0);")
+posts = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
+count = 0
 
-print(filter_data)
+# 點擊所有流言及文章加載內容
+while count <= len(posts) - 1:
+    post = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
+    ActionChains(driver).move_to_element(post[count]).perform()
+    print(count)
+    # count += 1
+    while True:
+        try:
+            post = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
+            # print(len(post))
+            more = post[count].find_element_by_css_selector(
+                "div.kvgmc6g5.cxmmr5t8.oygrvhab.hcukyx3x.c1et5uql.ii04i59q div[role=button]")
+            ActionChains(driver).move_to_element(more).perform()
+            print(more.location)
+            driver.execute_script("arguments[0].click();", more)
+            time.sleep(0.1)
+        except NoSuchElementException:
+            try:
+                post = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
+                btn_more = post[count].find_element_by_css_selector(
+                    'span.j83agx80.fv0vnmcu.hpfvmrgz span.d2edcug0.hpfvmrgz.qv66sw1b.c1et5uql.b0tq1wua.a8c37x1j.keod5gw0.nxhoafnm.aigsh9s9.d9wwppkn.fe6kdd0r.mau55g9w.c8b282yb.hrzyx87i.jq4qci2q.a3bd9o3v.lrazzd5p.m9osqain')
+                ActionChains(driver).move_to_element(btn_more).perform()
 
-#%%
-for i in filter_data:
-    html = requests.get(i)
-    soup =BeautifulSoup(html.text, "lxml")
-    dd = soup.select("div.gtad4xkn")
-    print(dd)
+                driver.execute_script("arguments[0].click();", btn_more)
+                time.sleep(0.1)
 
+            except StaleElementReferenceException:
+                try:
+                    post = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
+                    btn_more = post[count].find_element_by_css_selector(
+                        'span.j83agx80.fv0vnmcu.hpfvmrgz span.d2edcug0.hpfvmrgz.qv66sw1b.c1et5uql.b0tq1wua.a8c37x1j.keod5gw0.nxhoafnm.aigsh9s9.d9wwppkn.fe6kdd0r.mau55g9w.c8b282yb.hrzyx87i.jq4qci2q.a3bd9o3v.lrazzd5p.m9osqain')
+                    ActionChains(driver).move_to_element(btn_more).perform()
+                    driver.execute_script("arguments[0].click();", btn_more)
+                    time.sleep(0.1)
+                except NoSuchElementException:  # 點完所有更多留言按鈕了
+                    count += 1
+                    break
+            except NoSuchElementException:  # 點完所有更多留言按鈕了
+                count += 1
+                break
 
-
-
-
-#%%
-
-#%%
-import re
-comments = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
-
-for index , comment in enumerate(comments):
-        # comment.find_element_by_css_selector("div div > div > div > div > div.pybr56ya.dati1w0a.hv4rvrfc.n851cfcs.btwxx1t3.j83agx80.ll8tlv6m")
-        print(index)
-        # print(comment.text)
-        test = comment.find_element_by_css_selector("span.d2edcug0.hpfvmrgz.qv66sw1b.c1et5uql.b0tq1wua.a8c37x1j.keod5gw0.nxhoafnm.aigsh9s9.d9wwppkn.fe6kdd0r.mau55g9w.c8b282yb.hrzyx87i.jq4qci2q.a3bd9o3v.lrazzd5p.m9osqain")
-        print(test.text)
-        count = 0
-        #
-        # try:
-        #     test[-1].click()
-        # except:
-        #     pass
-
-        # if re.match("檢視另\d*則留言" , test[-1].text) != None:
-        #         test[-1].click()
-
-
-#%%
-from bs4 import  BeautifulSoup
-
-soup = BeautifulSoup(driver.page_source , "lxml")
+# %%
+soup = BeautifulSoup(driver.page_source, "lxml")
 posts = soup.select("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
 
-for index , post in enumerate(posts):
-    print(index)
-    comment = post.select("div.gtad4xkn")
-    for i in comment[0]:
-        print(i.text)
+for post in posts:
+
+    # 獲取發文日期
+    days = post.select("span[id^='jsc'] span.j1lvzwm4.stjgntxs.ni8dbmo4.q9uorilb.gpro0wi8")
+    for day in days:
+        data = day.text.replace("=", "")
+        print("day : ", data)
+    contents = post.select(
+        "div.qzhwtbm6.knvmm38d span.d2edcug0.hpfvmrgz.qv66sw1b.c1et5uql.b0tq1wua.a8c37x1j.keod5gw0.nxhoafnm.aigsh9s9.d9wwppkn.fe6kdd0r.mau55g9w.c8b282yb.hrzyx87i.jq4qci2q.a3bd9o3v.knj5qynh.oo9gr5id.hzawbc8m")
+
+    # 獲取發文內容
+    for content in contents:
+        data = content.text.replace("\n", "")
+        if data == "":
+            print("content : ", "no word!!")
+        else:
+            print(data)
+
+    # 獲取留言
+    comments = post.select("div.cwj9ozl2.tvmbv18p>ul>li div.kvgmc6g5.cxmmr5t8.oygrvhab.hcukyx3x.c1et5uql")
+    for comment in comments:
+        data = comment.text
+        print("comment :", data)
