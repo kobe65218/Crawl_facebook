@@ -36,8 +36,8 @@ option.add_experimental_option('perfLoggingPrefs', {
 option.add_argument("--disable-notifications")
 driver = webdriver.Chrome(desired_capabilities=caps, options=option)
 driver .get('https://www.facebook.com/?stype=lo&jlou=AffaQOipEw6f7To3BhArLIJBajOrBGoRMAQ7Bhzr4aaYsWjPSY6XSMLdL2Vq-ltT5BPjFtQW2zcm8NMlF0TX29S2u8ftj9ofnleppVZntmuFwA&smuh=15818&lh=Ac8DARqZTrATBAVV17I')
-driver.find_element_by_css_selector("input#email").send_keys("kobe655218@gmail.com")
-driver.find_element_by_css_selector("input#pass").send_keys("kobe910018")
+driver.find_element_by_css_selector("input#email").send_keys("")
+driver.find_element_by_css_selector("input#pass").send_keys("")
 driver.find_element_by_css_selector("button[name='login']").click()
 time.sleep(3)
 driver.get("https://www.facebook.com/craziejulia")  #https://www.facebook.com/friends/suggestions/?profile_id=100000160215580
