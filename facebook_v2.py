@@ -13,33 +13,9 @@ from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import NoSuchElementException
 
 # setting driver
-caps = DesiredCapabilities.CHROME
-caps['loggingPrefs'] = {'performance': 'ALL' ,
-                        'brower':'ALL'}
-
-caps['perfLoggingPrefs'] = {
-    'enableNetwork':True,
-    'enablePage' : False,
-    'enableTimeline':False
-}
 option =  webdriver.ChromeOptions()
-option.add_experimental_option('w3c', False)
-prefs = {
-        'profile.default_content_setting_values': {
-            'images': 1,
-            'permissions.default.stylesheet':2,
-            'javascript': 1
-        }
-    }
-
-option.add_experimental_option("prefs",prefs)
-option.add_experimental_option('perfLoggingPrefs', {
-    'enableNetwork':True,
-    'enablePage' : False
-})
-# option.add_argument("ignore-certificate-errors")
 option.add_argument("--disable-notifications")
-driver = webdriver.Chrome(desired_capabilities=caps, options=option)
+driver = webdriver.Chrome( options=option)
 
 
 def login(email,password):
