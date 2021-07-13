@@ -189,7 +189,7 @@ def fetch_data():
         datas.append(d)
     return datas
 if __name__ == "__main__":
-    login("shine655218@gmail.com" , "kobe910018")
+    login("Email" , "Paswwword")
     get_url("https://www.facebook.com/craziejulia")
     scroll()
     time.sleep(5)
