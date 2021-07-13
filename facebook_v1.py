@@ -55,6 +55,7 @@ def scroll():
     height_before = 0
     count = 0
     while True:
+
         time.sleep(0.5)
 
         # 如果高度都沒變及post數為0代表已經滑到底
@@ -86,11 +87,8 @@ def scroll():
 
             # 如果有post活動 則去等待post後大於post前
             if resp_url == "https://www.facebook.com/ajax/bulk-route-definitions/":  # https://www.facebook.com/ajax/bulk-route-definitions/
-                posts = driver.find_elements_by_css_selector("div.du4w35lb.k4urcfbm.l9j0dhe7.sjgh65i0")
-                posts_len = len(posts)
-                last_post = posts_len
                 count = 1
-                print("network post")
+                print("Has network post")
 
                 # 等待貼文loading
                 while True:
@@ -102,6 +100,7 @@ def scroll():
                         # 紀錄post前貼文數
                         last_p = posts_len_now
                         break
+
                 break
 
 # 點擊所有流言及文章加載內容
@@ -189,7 +188,7 @@ def fetch_data():
         datas.append(d)
     return datas
 if __name__ == "__main__":
-    login("Email" , "Paswwword")
+    login("Email" , "Password")
     get_url("https://www.facebook.com/craziejulia")
     scroll()
     time.sleep(5)
