@@ -7,6 +7,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import NoSuchElementException
 
+#test
 # setting driver
 caps = DesiredCapabilities.CHROME
 caps['loggingPrefs'] = {'performance': 'ALL' ,
